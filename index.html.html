@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NONA ULTRA PRO | المنصة الاحترافية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --indigo: #6366f1; --dark: #020617; }
+        body { font-family: 'Cairo', sans-serif; background: var(--dark); color: #f8fafc; overflow-x: hidden; }
+        
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; }
+        
+        #cart-sidebar {
+            position: fixed; top: 0; right: -100%; width: 100%; max-width: 500px; height: 100vh;
+            background: #030712; z-index: 9999; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -20px 0 50px rgba(0,0,0,0.8);
+        }
+        #cart-sidebar.open { right: 0; }
+
+        .payment-method.active { border: 2px solid var(--indigo); background: rgba(99, 102, 241, 0.1); }
+        .shipping-method.active { border: 2px solid #10b981; background: rgba(16, 185, 129, 0.1); }
+        
+        .bell-ring { animation: ring 4s infinite; transform-origin: top; }
+        @keyframes ring { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(15deg); } 95% { transform: rotate(-15deg); } }
+
+        /* شريط التمرير */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--indigo); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 glass px-10 py-4 opacity-0 transition-all z-[10000] text-indigo-400 font-bold"></div>
+
+    <div class="fixed bottom-8 left-8 z-[8000] glass p-4 flex items-center gap-4 border-indigo-500/20 shadow-2xl">
+        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center bell-ring">
+            <i data-lucide="music" class="text-white"></i>
+        </div>
+        <div class="hidden md:block">
+            <p class="text-[10px] opacity-50 uppercase font-black">Playing Now</p>
+            <p class="text-xs font-bold"> - NONA REMIX</p>
+        </div>
+        <button onclick="togglePlay()" class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all">
+            <i data-lucide="play" id="playIcon"></i>
+        </button>
+    </div>
+
+    <div id="cart-sidebar" class="p-8 flex flex-col border-l border-white/10">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-black italic">مراجعة الطلب</h2>
+            <button onclick="toggleCart()" class="w-10 h-10 glass flex items-center justify-center"><i data-lucide="x"></i></button>
+        </div>
+
+        <div id="cart-list" class="flex-grow overflow-y-auto space-y-4 mb-6">
+            </div>
+
+        <div class="space-y-6 pt-6 border-t border-white/10">
+            <div>
+                <h3 class="text-xs font-bold opacity-50 mb-3 uppercase">1. خدمة التوصيل</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="setShipping('standard', 50)" id="ship-standard" class="shipping-method glass p-3 text-center cursor-pointer active">
+                        <p class="text-[10px] font-bold">شحن قياسي</p>
+                        <p class="text-xs text-indigo-400">50 ج.م</p>
+                    </div>
+                    <div onclick="setShipping('fast', 120)" id="ship-fast" class="shipping-method glass p-3 text-center cursor-pointer">
+                        <p class="text-[10px] font-bold">شحن صاروخي</p>
+                        <p class="text-xs text-green-400">120 ج.م</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold opacity-50 mb-3 uppercase">2. وسيلة الدفع</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div onclick="setPayment('visa')" id="pay-visa" class="payment-method glass p-3 text-center cursor-pointer active">
+                        <i data-lucide="credit-card" class="w-4 h-4 mx-auto mb-1"></i>
+                        <span class="text-[10px]">فيزا</span>
+                    </div>
+                    <div onclick="setPayment('wallet')" id="pay-wallet" class="payment-method glass p-3 text-center cursor-pointer">
+                        <i data-lucide="smartphone" class="w-4 h-4 mx-auto mb-1"></i>
+                        <span class="text-[10px]">محفظة</span>
+                    </div>
+                    <div onclick="setPayment('cash')" id="pay-cash" class="payment-method glass p-3 text-center cursor-pointer">
+                        <i data-lucide="banknote" class="w-4 h-4 mx-auto mb-1"></i>
+                        <span class="text-[10px]">كاش</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass p-5 space-y-2">
+                <div class="flex justify-between text-xs opacity-60"><span>المنتجات:</span> <span id="bill-subtotal">0 ج.م</span></div>
+                <div class="flex justify-between text-xs opacity-60"><span>الشحن:</span> <span id="bill-shipping">50 ج.م</span></div>
+                <div class="flex justify-between text-xl font-black pt-2 border-t border-white/5">
+                    <span>الإجمالي:</span> <span id="bill-total" class="text-indigo-400">0 ج.م</span>
+                </div>
+            </div>
+
+            <button onclick="processOrder()" class="w-full bg-indigo-600 py-5 rounded-2xl font-black text-lg hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">تأكيد وشحن الطلب</button>
+        </div>
+    </div>
+
+    <header class="p-8 flex justify-between items-center max-w-7xl mx-auto">
+        <div class="flex items-center gap-4">
+            <i data-lucide="tree-pine" class="w-12 h-12 text-emerald-500"></i>
+            <h1 class="text-5xl font-black italic tracking-tighter">NONA<span class="text-indigo-600">.</span>PRO</h1>
+        </div>
+        <button onclick="toggleCart()" class="relative glass p-5">
+            <i data-lucide="shopping-cart"></i>
+            <span id="cart-count" class="absolute -top-1 -right-1 bg-indigo-600 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">0</span>
+        </button>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-8">
+        <div class="mb-12 border-r-8 border-indigo-600 pr-6">
+            <h2 class="text-4xl font-black italic uppercase">قائمة المعدات المختارة</h2>
+            <p class="opacity-50 text-sm">أفضل المنتجات الرياضية بأفضل أنظمة الدفع</p>
+        </div>
+        
+        <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // الإعدادات
+        const playlist = [
+            { src: '888.mp3', title: ' NONA REMIX' },
+        ];
+        let currentTrack = 0;
+        const audio = new Audio();
+        audio.loop = true ;
+
+        function loadTrack(i) {
+            currentTrack = ((i % playlist.length) + playlist.length) % playlist.length;
+            audio.src = playlist[currentTrack].src;
+            const titleEl = document.querySelector('.playing-title');
+            if (titleEl) titleEl.innerText = playlist[currentTrack].title;
+            const icon = document.getElementById('playIcon');
+            if (icon) icon.setAttribute('data-lucide', audio.paused ? 'play' : 'pause');
+            lucide.createIcons();
+        }
+
+        function nextTrack() {
+            loadTrack(currentTrack + 1);
+            if (!audio.paused) audio.play();
+        }
+
+        function prevTrack() {
+            loadTrack(currentTrack - 1);
+            if (!audio.paused) audio.play();
+        }
+
+        loadTrack(0);
+
+        const products = [
+            { id: 1, name: "حذاء الجري الاحترافي", price: 2100, img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff" },
+            { id: 2, name: "مجموعة أثقال نونا", price: 1450, img: "https://png.pngtree.com/thumb_back/fh260/background/20230527/pngtree-man-with-beard-lifting-with-a-barbell-and-weights-image_2683313.jpg" },
+            { id: 3, name: "ساعة رياضية ذكية", price: 3200, img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30" },
+            { id: 4, name: "حقيبة الجيم التقنية", price: 780, img: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62" },
+            { id: 5, name: "سماعات بيست مود", price: 2900, img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e" },
+            { id: 6, name: "زجاجة مياه ذكية", price: 450, img: "https://images.unsplash.com/photo-1557431177-36141475c676" }
+        ];
+
+        let cart = [];
+        let shippingCost = 50;
+        let paymentMethod = 'visa';
+
+        function renderProducts() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = products.map(p => `
+                <div class="glass p-6 group transition-all hover:bg-white/5">
+                    <div class="h-64 rounded-2xl overflow-hidden mb-6">
+                        <img src="${p.img}" class="w-full h-full object-cover transition-transform group-hover:scale-110">
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h3 class="font-bold text-xl uppercase mb-1">${p.name}</h3>
+                            <p class="text-indigo-400 font-black">${p.price} ج.م</p>
+                        </div>
+                        <button onclick="addToCart(${p.id})" class="bg-white text-black p-4 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg">
+                            <i data-lucide="plus"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function addToCart(id) {
+            const item = products.find(p => p.id === id);
+            const inCart = cart.find(c => c.id === id);
+            if(inCart) inCart.qty++;
+            else cart.push({...item, qty: 1});
+            updateCart();
+            showToast("تمت الإضافة للسلة ✅");
+        }
+
+        function updateQty(id, delta) {
+            const item = cart.find(c => c.id === id);
+            item.qty += delta;
+            if(item.qty < 1) cart = cart.filter(c => c.id !== id);
+            updateCart();
+        }
+
+        function updateCart() {
+            const list = document.getElementById('cart-list');
+            const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            
+            document.getElementById('cart-count').innerText = cart.reduce((s, i) => s + i.qty, 0);
+            document.getElementById('bill-subtotal').innerText = subtotal + " ج.م";
+            document.getElementById('bill-shipping').innerText = shippingCost + " ج.م";
+            document.getElementById('bill-total').innerText = (subtotal + shippingCost) + " ج.م";
+
+            if(cart.length === 0) {
+                list.innerHTML = `<p class="text-center opacity-30 py-10 italic">الحقيبة فارغة</p>`;
+                return;
+            }
+
+            list.innerHTML = cart.map(item => `
+                <div class="glass p-4 flex items-center gap-4">
+                    <img src="${item.img}" class="w-16 h-16 rounded-xl object-cover">
+                    <div class="flex-grow">
+                        <p class="text-sm font-bold">${item.name}</p>
+                        <p class="text-indigo-400 text-xs font-black">${item.price * item.qty} ج.م</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/5 rounded-lg p-1">
+                        <button onclick="updateQty(${item.id}, -1)" class="p-1 hover:text-indigo-400"><i data-lucide="minus" class="w-4"></i></button>
+                        <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                        <button onclick="updateQty(${item.id}, 1)" class="p-1 hover:text-indigo-400"><i data-lucide="plus" class="w-4"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function setShipping(type, cost) {
+            shippingCost = cost;
+            document.querySelectorAll('.shipping-method').forEach(el => el.classList.remove('active'));
+            document.getElementById(`ship-${type}`).classList.add('active');
+            updateCart();
+        }
+
+        function setPayment(method) {
+            paymentMethod = method;
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+            document.getElementById(`pay-${method}`).classList.add('active');
+        }
+
+        function togglePlay() {
+            const icon = document.getElementById('playIcon');
+            if(audio.paused) {
+                audio.play();
+                icon.setAttribute('data-lucide', 'pause');
+            } else {
+                audio.pause();
+                icon.setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('open'); }
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 3000);
+        }
+
+        function processOrder() {
+            if(cart.length === 0) return alert("السلة خالية!");
+            const name = prompt("الرجاء إدخال اسمك بالكامل:");
+            if(!name) return;
+            const address = prompt("عنوان التوصيل:");
+            if(!address) return;
+
+            alert(`تهانينا يا بطل! تم استلام طلبك.\n\nالاسم: ${name}\nالإجمالي: ${document.getElementById('bill-total').innerText}\nوسيلة الدفع: ${paymentMethod}\n\nسيتم التوصيل إلى: ${address}`);
+            cart = [];
+            updateCart();
+            toggleCart();
+        }
+
+        renderProducts();
+    </script>
+</body>
+</html>
